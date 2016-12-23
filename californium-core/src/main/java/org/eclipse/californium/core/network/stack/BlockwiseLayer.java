@@ -545,6 +545,16 @@ public class BlockwiseLayer extends AbstractLayer {
 					upper().receiveResponse(exchange, resp);
 				}
 			} else if (!response.hasBlockOption()) {
+				KeyUri key = getKey(exchange, response);
+				Block2BlockwiseStatus status = getInboundBlock2Status(key, exchange, response);
+
+				if (response.getOptions().hasObserve() && status != null
+						&& status.isNotification()
+						&& status.getObserve() < response.getOptions().getObserve()) {
+					exchange.setComplete();
+					exchange.setCurrentRequest(exchange.getRequest());
+					clearBlock2Status(key);
+				}
 
 				// This is a normal response, no special treatment necessary
 				exchange.setResponse(response);
