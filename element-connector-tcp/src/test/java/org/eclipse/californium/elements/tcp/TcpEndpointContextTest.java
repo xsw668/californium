@@ -250,7 +250,7 @@ public class TcpEndpointContextTest {
 		/* give client time to detect the closed connection, but much less then the idle timeout */
 		/* when the connector gets extended to report the connection state, this may be improved */
 		/* by waiting for that disconnect */
-		Thread.sleep(TimeUnit.MILLISECONDS.convert(ConnectorTestUtil.IDLE_TIMEOUT_RECONNECT_IN_S, TimeUnit.SECONDS) / 5);
+//		Thread.sleep(TimeUnit.MILLISECONDS.convert(ConnectorTestUtil.IDLE_TIMEOUT_RECONNECT_IN_S, TimeUnit.SECONDS) / 5);
 		server.start();
 
 		clientCallback = new SimpleMessageCallback();
