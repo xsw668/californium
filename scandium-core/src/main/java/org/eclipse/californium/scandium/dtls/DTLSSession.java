@@ -134,6 +134,9 @@ public final class DTLSSession {
 	 */
 	private byte[] masterSecret = null;
 
+	private ConnectionId readConnectionId = null;
+	private ConnectionId writeConnectionId = null;
+
 	/**
 	 * The <em>current read state</em> used for processing all inbound records.
 	 */
@@ -293,6 +296,22 @@ public final class DTLSSession {
 		}
 	}
 
+	public ConnectionId getReadConnectionId() {
+		return readConnectionId;
+	}
+
+	void setReadConnectionId(ConnectionId connectionId) {
+		this.readConnectionId = connectionId;
+	}
+
+	public ConnectionId getWriteConnectionId() {
+		return writeConnectionId;
+	}
+
+	void setWriteConnectionId(ConnectionId connectionId) {
+		this.writeConnectionId = connectionId;
+	}
+
 	/**
 	 * Gets the (virtual) host name for the server that this session
 	 * has been established for.
@@ -365,13 +384,11 @@ public final class DTLSSession {
 	}
 
 	public DtlsEndpointContext getConnectionWriteContext() {
-
 		return new DtlsEndpointContext(peer, virtualHost, peerIdentity, sessionIdentifier.toString(),
 				Integer.toString(writeEpoch), cipherSuite.name(), handshakeTimeTag);
 	}
 
 	public DtlsEndpointContext getConnectionReadContext() {
-
 		return new DtlsEndpointContext(peer, virtualHost, peerIdentity, sessionIdentifier.toString(),
 				Integer.toString(readEpoch), cipherSuite.name(), handshakeTimeTag);
 	}
@@ -760,11 +777,12 @@ public final class DTLSSession {
 	}
 
 	private void determineMaxFragmentLength(int maxProcessableFragmentLength) {
-		int maxDatagramSize = maxProcessableFragmentLength + writeState.getMaxCiphertextExpansion() + HEADER_LENGTH;
+		int cidLength = writeConnectionId == null ? 0: writeConnectionId.length();
+		int maxDatagramSize = maxProcessableFragmentLength + writeState.getMaxCiphertextExpansion() + cidLength + HEADER_LENGTH;
 		if (maxDatagramSize <= maxTransmissionUnit) {
 			this.maxFragmentLength = maxProcessableFragmentLength;
 		} else {
-			this.maxFragmentLength = maxTransmissionUnit - HEADER_LENGTH - writeState.getMaxCiphertextExpansion();
+			this.maxFragmentLength = maxTransmissionUnit - HEADER_LENGTH - cidLength - writeState.getMaxCiphertextExpansion();
 		}
 		LOGGER.debug("Setting maximum fragment length for peer [{}] to {} bytes", peer, this.maxFragmentLength);
 	}
