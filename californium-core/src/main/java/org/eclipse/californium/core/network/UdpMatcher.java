@@ -52,6 +52,9 @@
  *    Achim Kraus (Bosch Software Innovations GmbH) - remove exchange on ACK/RST only after
  *                                                    context matching
  *    Achim Kraus (Bosch Software Innovations GmbH) - add support for multicast
+ *    Achim Kraus (Bosch Software Innovations GmbH) - deduplication base on the ip-address
+ *                                                    and MID may fail on requests assuming
+ *                                                    addresses are changing
  ******************************************************************************/
 package org.eclipse.californium.core.network;
 
@@ -201,21 +204,26 @@ public final class UdpMatcher extends BaseMatcher {
 		//      if nothing has been sent yet => do nothing
 		// (Retransmission is supposed to be done by the retransm. layer)
 
-		KeyMID idByMID = KeyMID.fromInboundMessage(request);
-
+		final KeyMID idByMID = KeyMID.fromInboundMessage(request);
 		final Exchange exchange = new Exchange(request, Origin.REMOTE, executor);
 		final Exchange previous = exchangeStore.findPrevious(idByMID, exchange);
-		if (previous == null) {
-			exchange.setRemoveHandler(exchangeRemoveHandler);
-			exchange.execute(new Runnable() {
+		boolean duplicate = previous != null;
 
-				@Override
-				public void run() {
-					receiver.receiveRequest(exchange, request);
+		if (duplicate) {
+			// assuming addresses changing, request could not only be deduplicated by their address and mid.
+			EndpointContext sourceContext = request.getSourceContext();
+			Request previousRequest = previous.getRequest();
+			EndpointContext previousSourceContext = previousRequest.getSourceContext();
+			duplicate = endpointContextMatcher.isResponseRelatedToRequest(sourceContext, previousSourceContext);
+			if (!duplicate) {
+				exchangeStore.remove(idByMID, previous);
+				if (exchangeStore.findPrevious(idByMID, exchange) != null) {
+					LOGGER.warn("new request could not be registered!");
 				}
-			});
+			}
+		}
 
-		} else {
+		if (duplicate) {
 			LOGGER.trace("duplicate request: {}", request);
 			request.setDuplicate(true);
 			previous.execute(new Runnable() {
@@ -223,6 +231,15 @@ public final class UdpMatcher extends BaseMatcher {
 				@Override
 				public void run() {
 					receiver.receiveRequest(previous, request);
+				}
+			});
+		} else {
+			exchange.setRemoveHandler(exchangeRemoveHandler);
+			exchange.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					receiver.receiveRequest(exchange, request);
 				}
 			});
 		}

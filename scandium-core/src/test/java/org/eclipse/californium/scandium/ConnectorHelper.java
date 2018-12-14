@@ -133,7 +133,7 @@ public class ConnectorHelper {
 	public void startServer(DtlsConnectorConfig.Builder builder) throws IOException, GeneralSecurityException {
 
 		serverSessionCache = new InMemorySessionCache();
-		serverConnectionStore = new InMemoryConnectionStore(SERVER_CONNECTION_STORE_CAPACITY, 5 * 60, serverSessionCache); // connection timeout 5mins
+		serverConnectionStore = new InMemoryConnectionStore(null, SERVER_CONNECTION_STORE_CAPACITY, 5 * 60, serverSessionCache); // connection timeout 5mins
 		serverConnectionStore.setTag("server");
 
 		InMemoryPskStore pskStore = new InMemoryPskStore();
@@ -152,6 +152,7 @@ public class ConnectorHelper {
 				.setMaxTransmissionUnit(1024)
 				.setReceiverThreadCount(1)
 				.setConnectionThreadCount(2)
+				.setLoggingTag("server")
 				.setServerOnly(true);
 
 		if (!Boolean.FALSE.equals(builder.getIncompleteConfig().isClientAuthenticationRequired()) ||
@@ -192,12 +193,27 @@ public class ConnectorHelper {
 		server.setAlertHandler(null);
 	}
 
+	/**
+	 * Remove connect from server side connection store.
+	 * 
+	 * @param client address of client
+	 * @param removeFromSessionCache {@code true} remove from session cache
+	 *            also.
+	 */
+	public void remove(InetSocketAddress client, boolean removeFromSessionCache) {
+		Connection connection = serverConnectionStore.get(client);
+		if (connection != null) {
+			serverConnectionStore.remove(connection, removeFromSessionCache);
+		}
+	}
+
 	static DtlsConnectorConfig newStandardClientConfig(final InetSocketAddress bindAddress) throws IOException, GeneralSecurityException {
 		return newStandardClientConfigBuilder(bindAddress).build();
 	}
 
 	static DtlsConnectorConfig.Builder newStandardClientConfigBuilder(final InetSocketAddress bindAddress) throws IOException, GeneralSecurityException {
 		return new DtlsConnectorConfig.Builder()
+				.setLoggingTag("client")
 				.setAddress(bindAddress)
 				.setReceiverThreadCount(1)
 				.setConnectionThreadCount(2)

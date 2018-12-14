@@ -232,6 +232,8 @@ public final class DtlsConnectorConfig {
 	private Integer connectionIdLength;
 
 	private Boolean useConnectionIdInHandshake;
+
+	private String loggingTag;
 	
 	private DtlsConnectorConfig() {
 		// empty
@@ -617,6 +619,10 @@ public final class DtlsConnectorConfig {
 		return trustedRPKs;
 	}
 
+	public String getLoggingTag() {
+		return loggingTag;
+	}
+
 	/**
 	 * @return a copy of this configuration
 	 */
@@ -654,6 +660,7 @@ public final class DtlsConnectorConfig {
 		cloned.verifyPeersOnResumptionThreshold = verifyPeersOnResumptionThreshold;
 		cloned.connectionIdLength = connectionIdLength;
 		cloned.useConnectionIdInHandshake = useConnectionIdInHandshake;
+		cloned.loggingTag = loggingTag;
 		return cloned;
 	}
 
@@ -1506,6 +1513,11 @@ public final class DtlsConnectorConfig {
 			return this;
 		}
 
+		public Builder setLoggingTag(String tag) {
+			config.loggingTag = tag;
+			return this;
+		}
+
 		private boolean isConfiguredWithKeyPair() {
 			return config.privateKey != null && config.publicKey != null;
 		}
@@ -1546,6 +1558,9 @@ public final class DtlsConnectorConfig {
 			// set default values
 			if (config.address == null) {
 				config.address = new InetSocketAddress(0);
+			}
+			if (config.loggingTag == null) {
+				config.loggingTag = "";
 			}
 			if (config.enableReuseAddress == null) {
 				config.enableReuseAddress = false;
